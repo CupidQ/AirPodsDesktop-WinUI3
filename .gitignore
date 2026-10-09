@@ -9,10 +9,8 @@ obj/
 .vs/
 *.DotSettings.user
 
-# Build output
+# Installer output
 dist/
-app/AirPodsDesktop/bin/
-app/AirPodsDesktop/obj/
 
 # Logs / local
 *.log

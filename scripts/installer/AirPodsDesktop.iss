@@ -2,7 +2,7 @@
   #define AppVersion "0.1.0"
 #endif
 #ifndef PublishDir
-  #define PublishDir "..\dist\publish"
+  #define PublishDir "..\..\dist\publish"
 #endif
 
 [Setup]
@@ -19,8 +19,8 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64os
 ArchitecturesInstallIn64BitMode=x64os
 MinVersion=10.0.17763
-LicenseFile=..\LICENSE
-OutputDir=..\dist
+LicenseFile=..\..\LICENSE
+OutputDir=..\..\dist
 OutputBaseFilename=AirPodsDesktop-WinUI3-{#AppVersion}-Setup-x64
 Compression=lzma2
 SolidCompression=yes

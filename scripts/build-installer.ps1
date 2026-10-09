@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$packageRoot = $PSScriptRoot
+$packageRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $packageRoot
 
 if (-not $IsccPath) {
@@ -19,7 +19,7 @@ if (-not $IsccPath) {
     }
 }
 if (-not $IsccPath -or -not (Test-Path -LiteralPath $IsccPath)) {
-    throw 'Install Inno Setup 6.3+ or pass -IsccPath to ISCC.exe.'
+    throw 'Install Inno Setup 6.5+ or pass -IsccPath to ISCC.exe.'
 }
 
 if (-not $VcRedistDir) {
@@ -43,7 +43,7 @@ if (-not $VcRedistDir -or -not (Test-Path -LiteralPath (Join-Path $VcRedistDir '
     throw 'Visual C++ x64 app-local redistributables not found. Pass -VcRedistDir to Microsoft.VC143.CRT.'
 }
 
-. (Join-Path $packageRoot 'build.ps1')
+. (Join-Path $PSScriptRoot 'build.ps1')
 $dotnet = Find-DotNet
 $publishDir = Join-Path $packageRoot 'dist\publish'
 # Remove only the generated staging directory so outdated files never enter the installer.
@@ -60,6 +60,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Self-contained publish failed.' }
 Copy-Item -Path (Join-Path $VcRedistDir '*.dll') -Destination $publishDir -Force
 Copy-Item -LiteralPath (Join-Path $packageRoot 'LICENSE') -Destination $publishDir
 Copy-Item -LiteralPath (Join-Path $packageRoot 'README.md') -Destination $publishDir
+Copy-Item -LiteralPath (Join-Path $packageRoot 'docs') -Destination $publishDir -Recurse
 
 $runtimeConfig = Get-Content -LiteralPath (Join-Path $publishDir 'AirPodsDesktop.runtimeconfig.json') -Raw | ConvertFrom-Json
 $runtimeVersion = $runtimeConfig.runtimeOptions.includedFrameworks | Where-Object name -eq 'Microsoft.NETCore.App' | Select-Object -ExpandProperty version
@@ -82,7 +83,7 @@ foreach ($requiredFile in @('AirPodsDesktop.exe', 'apd_core.dll', 'Microsoft.UI.
 }
 [xml]$appProject = Get-Content -LiteralPath (Join-Path $packageRoot 'app\AirPodsDesktop\AirPodsDesktop.csproj')
 $appVersion = [string]$appProject.Project.PropertyGroup.Version
-& $IsccPath '/Qp' "/DAppVersion=$appVersion" "/DPublishDir=$publishDir" (Join-Path $packageRoot 'installer\AirPodsDesktop.iss')
+& $IsccPath '/Qp' "/DAppVersion=$appVersion" "/DPublishDir=$publishDir" (Join-Path $PSScriptRoot 'installer\AirPodsDesktop.iss')
 if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed.' }
 $setupFile = Join-Path $packageRoot "dist\AirPodsDesktop-WinUI3-$appVersion-Setup-x64.exe"
 $setupHash = (Get-FileHash -LiteralPath $setupFile -Algorithm SHA256).Hash.ToLowerInvariant()

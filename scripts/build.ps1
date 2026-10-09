@@ -2,7 +2,7 @@
 # Requires: Rust (msvc), .NET 8 SDK, VS Build Tools (C++), Windows 10/11 SDK
 
 $ErrorActionPreference = "Stop"
-$Root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
 function Find-VcVars {
@@ -39,7 +39,9 @@ if (-not [Environment]::GetEnvironmentVariable("PROGRAMFILES")) {
 }
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
 $env:DOTNET_CLI_UI_LANGUAGE = "en"
-$env:NUGET_PACKAGES = Join-Path $env:USERPROFILE ".nuget\packages"
+if (-not $env:NUGET_PACKAGES) {
+    $env:NUGET_PACKAGES = Join-Path $env:USERPROFILE ".nuget\packages"
+}
 
 Write-Host "==> Building Rust core (apd_core)..." -ForegroundColor Cyan
 $vcvars = Find-VcVars
