@@ -22,11 +22,20 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Build Rust, run regressions, build WinUI
+      - name: Ensure installer compiler
         shell: pwsh
-        run: ./build.ps1
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed' }
+          }
+      - name: Build, test, and package self-contained installer
+        shell: pwsh
+        run: ./build-installer.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: AirPodsDesktop-WinUI3-x64
-          path: app/AirPodsDesktop/bin/x64/Release/net8.0-windows10.0.19041.0/
+          name: AirPodsDesktop-WinUI3-Setup-x64
+          path: |
+            dist/*-Setup-x64.exe
+            dist/SHA256SUMS.txt
           if-no-files-found: error

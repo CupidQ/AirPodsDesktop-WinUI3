@@ -2,6 +2,14 @@
 
 用 **WinUI 3** 重写 [SpriteOvO/AirPodsDesktop](https://github.com/SpriteOvO/AirPodsDesktop)：上层界面采用 C# / WinUI 3，底层协议、BLE 扫描与状态机用 **Rust** 实现，通过 C ABI（P/Invoke）桥接。
 
+## 下载安装
+
+从 [WinUI 3 预览版 Release](https://github.com/CupidQ/AirPodsDesktop-WinUI3/releases/tag/v0.1.0-winui3) 下载 `AirPodsDesktop-WinUI3-0.1.0-Setup-x64.exe`。
+
+安装包适用于 Windows 10 1809+ / Windows 11 x64，包含 .NET、Windows App SDK 和 Visual C++ 运行组件，无需额外安装运行环境。默认安装到当前用户目录，提供开始菜单入口、可选桌面快捷方式和卸载功能。自启动需要在应用设置中主动开启。
+
+这是尚未经过真实 AirPods 兼容性测试的预览版。安装包未做代码签名，Windows 可能显示未知发布者提示；可使用 Release 的 `SHA256SUMS.txt` 校验下载文件。
+
 ## 功能
 
 - 通知区域（托盘）电池信息：左耳 / 右耳 / 充电盒
@@ -110,6 +118,17 @@ $env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
 或从 Visual Studio 打开 `app\AirPodsDesktop\AirPodsDesktop.csproj` 运行（x64）。
 
 运行时需要 .NET 8 x64。Windows App SDK 文件随构建输出一起提供；移动程序时请保留整个输出目录，不要只复制 EXE。
+
+### 制作安装包
+
+另外安装 [Inno Setup 6.3+](https://jrsoftware.org/isdl.php)，并确保 Visual Studio C++ x64 可再发行文件可用，然后执行：
+
+```powershell
+.\build-installer.ps1
+# 可显式指定 -IsccPath 和 -VcRedistDir
+```
+
+脚本执行构建与测试、自包含发布、打包运行组件，输出 `dist/AirPodsDesktop-WinUI3-0.1.0-Setup-x64.exe` 和 `dist/SHA256SUMS.txt`。卸载保留个人设置和日志，并清理指向此安装目录的自启动项。
 
 ## 项目布局
 

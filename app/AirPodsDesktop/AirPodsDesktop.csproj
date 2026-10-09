@@ -24,6 +24,7 @@
   <ItemGroup>
     <Content Include="Assets\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
 
@@ -41,6 +42,7 @@
     <None Include="..\..\target\release\apd_core.dll"
           Condition="Exists('..\..\target\release\apd_core.dll')"
           CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
           Link="apd_core.dll" />
   </ItemGroup>
 </Project>
