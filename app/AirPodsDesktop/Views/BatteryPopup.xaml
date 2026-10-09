@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="AirPodsDesktop.Views.BatteryPopup"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="AirPods 电量"
+    CloseButtonText="关闭"
+    DefaultButton="Close">
+
+    <StackPanel Spacing="12" MinWidth="280">
+        <StackPanel Orientation="Horizontal" Spacing="16">
+            <TextBlock x:Name="PopupLeft" Text="左耳 --" Style="{StaticResource BodyStrongTextBlockStyle}" />
+            <TextBlock x:Name="PopupRight" Text="右耳 --" Style="{StaticResource BodyStrongTextBlockStyle}" />
+            <TextBlock x:Name="PopupCase" Text="盒 --" Style="{StaticResource BodyStrongTextBlockStyle}" />
+        </StackPanel>
+        <ProgressBar x:Name="PopupLeftBar" Height="6" Minimum="0" Maximum="100" />
+        <ProgressBar x:Name="PopupRightBar" Height="6" Minimum="0" Maximum="100" />
+        <ProgressBar x:Name="PopupCaseBar" Height="6" Minimum="0" Maximum="100" />
+    </StackPanel>
+</ContentDialog>

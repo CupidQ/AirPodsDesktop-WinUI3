@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="AirPodsDesktop.Views.BatteryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="16" MaxWidth="720">
+            <TextBlock Text="电池与设置" Style="{StaticResource TitleTextBlockStyle}" />
+
+            <ItemsControl x:Name="BatteryList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Spacing="4" Margin="0,0,0,12">
+                            <TextBlock Text="{Binding Title}" />
+                            <TextBlock Text="{Binding Display}" />
+                            <ProgressBar Value="{Binding Percent}" Minimum="0" Maximum="100" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="选项" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,12,0,0" />
+
+            <ToggleSwitch x:Name="EarDetectionSwitch"
+                          Header="入耳检测（摘下暂停 / 佩戴播放）"
+                          Toggled="EarDetection_Toggled" />
+            <ToggleSwitch x:Name="LowLatencySwitch"
+                          Header="低延迟音频模式（尚未支持）"
+                          IsEnabled="False" />
+            <ToggleSwitch x:Name="AutoStartSwitch"
+                          Header="开机自启"
+                          Toggled="AutoStart_Toggled" />
+            <ToggleSwitch x:Name="PopupSwitch"
+                          Header="开盖时显示电量弹窗"
+                          Toggled="Popup_Toggled" />
+
+            <NumberBox x:Name="RssiMinBox"
+                       Header="最低信号强度 (dBm)"
+                       Minimum="-100" Maximum="0" SmallChange="5"
+                       Value="-80"
+                       ValueChanged="RssiMin_Changed" />
+
+            <ComboBox x:Name="ThemeCombo" Header="主题" HorizontalAlignment="Left"
+                      SelectionChanged="Theme_SelectionChanged">
+                <ComboBoxItem Content="跟随系统" Tag="system" />
+                <ComboBoxItem Content="浅色" Tag="light" />
+                <ComboBoxItem Content="深色" Tag="dark" />
+            </ComboBox>
+            <TextBlock x:Name="SettingsStatus" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

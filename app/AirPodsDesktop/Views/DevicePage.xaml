@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="AirPodsDesktop.Views.DevicePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="16" MaxWidth="720">
+            <TextBlock Text="设备状态" Style="{StaticResource TitleTextBlockStyle}" />
+            <TextBlock x:Name="StatusText" Text="正在扫描…" Opacity="0.7" />
+
+            <Border
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="20">
+
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <StackPanel>
+                            <TextBlock x:Name="ModelText" Text="AirPods" Style="{StaticResource SubtitleTextBlockStyle}" />
+                            <TextBlock x:Name="RssiText" Text="RSSI --" Opacity="0.6" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="左耳" Opacity="0.7" />
+                            <ProgressBar x:Name="LeftBatteryBar" Minimum="0" Maximum="100" Height="8" />
+                            <TextBlock x:Name="LeftBatteryText" Text="--" />
+                            <TextBlock x:Name="LeftInEarText" Text="" Opacity="0.6" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="右耳" Opacity="0.7" />
+                            <ProgressBar x:Name="RightBatteryBar" Minimum="0" Maximum="100" Height="8" />
+                            <TextBlock x:Name="RightBatteryText" Text="--" />
+                            <TextBlock x:Name="RightInEarText" Text="" Opacity="0.6" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Spacing="4">
+                            <TextBlock Text="充电盒" Opacity="0.7" />
+                            <ProgressBar x:Name="CaseBatteryBar" Minimum="0" Maximum="100" Height="8" />
+                            <TextBlock x:Name="CaseBatteryText" Text="--" />
+                            <TextBlock x:Name="LidText" Text="" Opacity="0.6" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="开始扫描" Click="StartScan_Click" />
+                <Button Content="停止扫描" Click="StopScan_Click" />
+                <Button Content="锁定当前广播地址" Click="BindDevice_Click" />
+                <Button Content="解除锁定" Click="UnbindDevice_Click" />
+            </StackPanel>
+            <TextBlock Text="AirPods 广播地址会随机变化。地址锁定只过滤当前地址，不代表蓝牙配对。" TextWrapping="Wrap" Opacity="0.7" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

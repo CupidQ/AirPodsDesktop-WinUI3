@@ -1,18 +1,20 @@
-CMakeCache.txt
-CMakeFiles
-CMakeScripts
-Testing
-Makefile
-cmake_install.cmake
-install_manifest.txt
-compile_commands.json
-CTestTestfile.cmake
+# Rust
+target/
+**/*.rs.bk
 
-# Visual Studio for CMake
-#
+# .NET
+bin/
+obj/
+*.user
 .vs/
-out/
-CMakeSettings.json
+*.DotSettings.user
 
-# Build
-Build/
+# Build output
+app/AirPodsDesktop/bin/
+app/AirPodsDesktop/obj/
+
+# Logs / local
+*.log
+logs/
+.idea/
+.vscode/
