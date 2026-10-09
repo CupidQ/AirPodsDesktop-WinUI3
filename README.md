@@ -2,8 +2,6 @@
 
 用 **WinUI 3** 重写 [SpriteOvO/AirPodsDesktop](https://github.com/SpriteOvO/AirPodsDesktop)：上层界面采用 C# / WinUI 3，底层协议、BLE 扫描与状态机用 **Rust** 实现，通过 C ABI（P/Invoke）桥接。
 
-本仓库保留上游 fork 关系和提交历史。原 Qt/C++ 版本保存在 `legacy/`，当前 WinUI 3 版本位于根目录。
-
 ## 功能
 
 - 通知区域（托盘）电池信息：左耳 / 右耳 / 充电盒
@@ -141,16 +139,6 @@ Rust 单元测试和集成回归覆盖协议解析、左右翻转、充电时入
 cargo test -p apd-core --locked
 # 17 个单元测试 + 4 个集成回归测试
 ```
-
-## 与原项目的差异
-
-| 原项目 (Qt/C++) | 本项目 |
-|-----------------|--------|
-| Qt 6 Widgets / QML | WinUI 3 / XAML |
-| C++/WinRT BLE | Rust `windows` crate |
-| QSystemTrayIcon | Win32 `Shell_NotifyIcon` |
-| Qt Settings | JSON 文件 |
-| 单进程 C++ | Rust `apd_core.dll` + C# UI |
 
 ## 致谢与许可
 
