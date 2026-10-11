@@ -1,20 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ContentDialog
-    x:Class="AirPodsDesktop.Views.BatteryPopup"
+<ContentDialog x:Class="AirPodsDesktop.Views.BatteryPopup"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="AirPods 电量"
-    CloseButtonText="关闭"
-    DefaultButton="Close">
-
-    <StackPanel Spacing="12" MinWidth="280">
-        <StackPanel Orientation="Horizontal" Spacing="16">
-            <TextBlock x:Name="PopupLeft" Text="左耳 --" Style="{StaticResource BodyStrongTextBlockStyle}" />
-            <TextBlock x:Name="PopupRight" Text="右耳 --" Style="{StaticResource BodyStrongTextBlockStyle}" />
-            <TextBlock x:Name="PopupCase" Text="盒 --" Style="{StaticResource BodyStrongTextBlockStyle}" />
-        </StackPanel>
-        <ProgressBar x:Name="PopupLeftBar" Height="6" Minimum="0" Maximum="100" />
-        <ProgressBar x:Name="PopupRightBar" Height="6" Minimum="0" Maximum="100" />
-        <ProgressBar x:Name="PopupCaseBar" Height="6" Minimum="0" Maximum="100" />
+    Title="准备好，继续聆听" CloseButtonText="好的" DefaultButton="Close">
+    <StackPanel Spacing="20" MinWidth="280">
+        <TextBlock Text="AirPods 当前电量" Style="{StaticResource SecondaryTextStyle}" />
+        <Border Style="{StaticResource BatteryTileStyle}">
+            <StackPanel Spacing="10">
+                <TextBlock x:Name="PopupLeft" Text="左耳 —" FontSize="18" FontWeight="SemiBold" />
+                <ProgressBar x:Name="PopupLeftBar" Height="5" Minimum="0" Maximum="100" Foreground="{ThemeResource BrandBrush}" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource BatteryTileStyle}">
+            <StackPanel Spacing="10">
+                <TextBlock x:Name="PopupRight" Text="右耳 —" FontSize="18" FontWeight="SemiBold" />
+                <ProgressBar x:Name="PopupRightBar" Height="5" Minimum="0" Maximum="100" Foreground="{ThemeResource BrandBrush}" />
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource BatteryTileStyle}">
+            <StackPanel Spacing="10">
+                <TextBlock x:Name="PopupCase" Text="充电盒 —" FontSize="18" FontWeight="SemiBold" />
+                <ProgressBar x:Name="PopupCaseBar" Height="5" Minimum="0" Maximum="100" Foreground="{ThemeResource BrandBrush}" />
+            </StackPanel>
+        </Border>
     </StackPanel>
 </ContentDialog>

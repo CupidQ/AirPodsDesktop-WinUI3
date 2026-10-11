@@ -52,6 +52,8 @@ cargo test -p apd-core --locked
 
 生成的 `target/`、`bin/`、`obj/` 和 `dist/` 不提交到仓库。协议字段直接参考 [airpods.rs](../crates/apd-core/src/protocol/airpods.rs)，避免维护重复说明。
 
+应用图标位于 `app/AirPodsDesktop/Assets/AppIcon.ico`，同时用于 EXE、窗口和安装程序。修改图标绘制后，运行 `scripts/generate-icons.ps1` 重新生成多尺寸 ICO 和清单 Logo，再构建应用。
+
 ## 约定与排错
 
 - Rust FFI 结构体使用 `#[repr(C)]`，C# 使用 `LayoutKind.Sequential`，两端布局必须同步。

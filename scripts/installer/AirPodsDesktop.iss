@@ -25,6 +25,7 @@ OutputBaseFilename=AirPodsDesktop-WinUI3-{#AppVersion}-Setup-x64
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile={#PublishDir}\Assets\AppIcon.ico
 DisableProgramGroupPage=yes
 CloseApplications=yes
 RestartApplications=no

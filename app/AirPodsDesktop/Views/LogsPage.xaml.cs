@@ -32,8 +32,17 @@ public sealed partial class LogsPage : Page
                 LogText.Text = "（暂无日志）";
                 return;
             }
-            // Last ~200 lines
-            var lines = File.ReadLines(file).TakeLast(200);
+            // The logger keeps this file open for writing. Allow reading while it
+            // appends or rolls the file, and retain only the most recent lines.
+            using var stream = new FileStream(file, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+            using var reader = new StreamReader(stream);
+            var lines = new Queue<string>();
+            while (reader.ReadLine() is { } line)
+            {
+                lines.Enqueue(line);
+                if (lines.Count > 200) lines.Dequeue();
+            }
             LogText.Text = string.Join(Environment.NewLine, lines);
         }
         catch (Exception ex)

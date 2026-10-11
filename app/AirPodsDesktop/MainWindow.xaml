@@ -5,22 +5,47 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="AirPodsDesktop">
 
-    <Grid x:Name="RootGrid">
+    <Grid x:Name="RootGrid" Background="{ThemeResource PageBackgroundBrush}">
         <NavigationView
             x:Name="NavView"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="False"
-            PaneDisplayMode="Left"
-            OpenPaneLength="200"
+            PaneDisplayMode="Auto"
+            CompactModeThresholdWidth="640"
+            ExpandedModeThresholdWidth="900"
+            OpenPaneLength="208"
+            ItemInvoked="NavView_ItemInvoked"
             SelectionChanged="NavView_SelectionChanged">
 
+            <NavigationView.PaneHeader>
+                <StackPanel Margin="16,20,12,24" Spacing="8">
+                    <FontIcon Glyph="&#xE7F6;" FontSize="28" Foreground="{ThemeResource BrandBrush}" HorizontalAlignment="Left" />
+                    <TextBlock Text="AirPods Desktop" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock Text="让聆听，更轻松" Style="{StaticResource SecondaryTextStyle}" />
+                </StackPanel>
+            </NavigationView.PaneHeader>
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="设备" Tag="Device" />
-                <NavigationViewItem Content="电池" Tag="Battery" />
-                <NavigationViewItem Content="日志" Tag="Logs" />
+                <NavigationViewItem Content="我的设备" Tag="Device">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE7F6;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="电量与偏好" Tag="Battery">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE83F;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
-
-            <Frame x:Name="ContentFrame" />
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem Content="诊断日志" Tag="Logs" Icon="Document" />
+            </NavigationView.FooterMenuItems>
+            <Frame x:Name="ContentFrame" Background="{ThemeResource PageBackgroundBrush}">
+                <Frame.ContentTransitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition IsStaggeringEnabled="False" />
+                    </TransitionCollection>
+                </Frame.ContentTransitions>
+            </Frame>
         </NavigationView>
     </Grid>
 </Window>
