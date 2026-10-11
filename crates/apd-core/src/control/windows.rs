@@ -12,8 +12,7 @@ use windows::Win32::Foundation::{
 use windows::Win32::Media::Audio::Endpoints::IAudioEndpointVolume;
 use windows::Win32::Media::Audio::{eMultimedia, eRender, IMMDeviceEnumerator, MMDeviceEnumerator};
 use windows::Win32::Storage::FileSystem::{
-    CreateFileW, ReadFile, WriteFile, FILE_FLAG_OVERLAPPED, FILE_SHARE_MODE,
-    OPEN_EXISTING,
+    CreateFileW, ReadFile, WriteFile, FILE_FLAG_OVERLAPPED, FILE_SHARE_MODE, OPEN_EXISTING,
 };
 use windows::Win32::System::Com::{
     CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL, COINIT_MULTITHREADED,
@@ -282,7 +281,7 @@ impl Device {
                 CreateFileW(
                     PCWSTR(path.as_ptr()),
                     GENERIC_READ.0 | GENERIC_WRITE.0,
-                FILE_SHARE_MODE(0),
+                    FILE_SHARE_MODE(0),
                     None,
                     OPEN_EXISTING,
                     FILE_FLAG_OVERLAPPED,
@@ -312,8 +311,9 @@ impl Device {
     }
 
     fn finish(
-        &self,
-        op: &OVERLAPPED,
+        file: HANDLE,
+        event: HANDLE,
+        op: *mut OVERLAPPED,
         result: windows::core::Result<()>,
         timeout: Duration,
     ) -> Result<Option<u32>, String> {
@@ -322,15 +322,15 @@ impl Device {
                 return Err(format!("控制通道读写失败: {error}"));
             }
             let wait = unsafe {
-                WaitForSingleObject(op.hEvent, timeout.as_millis().min(u32::MAX as u128) as u32)
+                WaitForSingleObject(event, timeout.as_millis().min(u32::MAX as u128) as u32)
             };
             if wait != WAIT_OBJECT_0 {
                 // OVERLAPPED and its buffer stay alive until canceled I/O completes.
                 unsafe {
-                    let _ = CancelIoEx(self.file.0, Some(op));
+                    let _ = CancelIoEx(file, Some(op));
                 }
                 let mut count = 0;
-                let drained = unsafe { GetOverlappedResult(self.file.0, op, &mut count, true) };
+                let drained = unsafe { GetOverlappedResult(file, op, &mut count, true) };
                 if wait == WAIT_TIMEOUT {
                     return match drained {
                         Ok(()) => Ok(Some(count)), // completed concurrently with cancellation
@@ -342,7 +342,7 @@ impl Device {
             }
         }
         let mut count = 0;
-        unsafe { GetOverlappedResult(self.file.0, op, &mut count, true) }
+        unsafe { GetOverlappedResult(file, op, &mut count, true) }
             .map_err(|e| format!("读取控制结果失败: {e}"))?;
         Ok(Some(count))
     }
@@ -355,10 +355,17 @@ impl Transport for Device {
             hEvent: self.write_event.0,
             ..Default::default()
         };
-        let result = unsafe { WriteFile(self.file.0, Some(packet), None, Some(&mut op)) };
-        let count = self
-            .finish(&op, result, Duration::from_secs(1))?
-            .ok_or("发送控制指令超时")?;
+        // No shared Rust reference to OVERLAPPED while Windows can mutate it.
+        let op = std::ptr::addr_of_mut!(op);
+        let result = unsafe { WriteFile(self.file.0, Some(packet), None, Some(op)) };
+        let count = Self::finish(
+            self.file.0,
+            self.write_event.0,
+            op,
+            result,
+            Duration::from_secs(1),
+        )?
+        .ok_or("发送控制指令超时")?;
         if count != packet.len() as u32 {
             return Err("控制指令未完整发送".into());
         }
@@ -370,16 +377,13 @@ impl Transport for Device {
             hEvent: self.read_event.0,
             ..Default::default()
         };
-        let result = unsafe {
-            ReadFile(
-                self.file.0,
-                Some(&mut self.read_buffer),
-                None,
-                Some(&mut op),
-            )
-        };
-        match self.finish(&op, result, timeout)? {
-            Some(count) => Ok(Some(self.read_buffer[..count as usize].to_vec())),
+        let op = std::ptr::addr_of_mut!(op);
+        let result = unsafe { ReadFile(self.file.0, Some(&mut self.read_buffer), None, Some(op)) };
+        match Self::finish(self.file.0, self.read_event.0, op, result, timeout)? {
+            Some(count) if count as usize <= self.read_buffer.len() => {
+                Ok(Some(self.read_buffer[..count as usize].to_vec()))
+            }
+            Some(_) => Err("驱动返回的控制数据长度无效".into()),
             None => Ok(None),
         }
     }
