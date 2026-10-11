@@ -40,7 +40,7 @@ cargo test -p apd-core --locked
 
 脚本完成构建与测试、自包含发布、运行组件打包，输出到 `dist/`：
 
-- `AirPodsDesktop-WinUI3-0.1.0-Setup-x64.exe`
+- `AirPodsDesktop-WinUI3-0.1.1-Setup-x64.exe`
 - `SHA256SUMS.txt`
 
 安装包包含 .NET、Windows App SDK 和 Visual C++ 运行组件。卸载保留个人设置和日志，并清理指向此安装目录的自启动项。
@@ -55,6 +55,8 @@ cargo test -p apd-core --locked
 | `docs` | 开发说明 |
 
 生成的 `target/`、`bin/`、`obj/` 和 `dist/` 不提交到仓库。协议字段直接参考 [airpods.rs](../crates/apd-core/src/protocol/airpods.rs)，避免维护重复说明。
+
+应用图标位于 `app/AirPodsDesktop/Assets/AppIcon.ico`，同时用于 EXE、窗口和安装程序。修改图标绘制后，运行 `scripts/generate-icons.ps1` 重新生成多尺寸 ICO 和清单 Logo，再构建应用。
 
 ## 约定与排错
 

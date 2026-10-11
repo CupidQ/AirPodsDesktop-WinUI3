@@ -8,6 +8,51 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="PageBackgroundBrush" Color="#F5F7F8" />
+                    <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="HeroBrush" Color="#EAF3F0" />
+                    <SolidColorBrush x:Key="SoftStrokeBrush" Color="#E5EAE8" />
+                    <SolidColorBrush x:Key="BrandBrush" Color="#327B68" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="PageBackgroundBrush" Color="#181C20" />
+                    <SolidColorBrush x:Key="SurfaceBrush" Color="#22272B" />
+                    <SolidColorBrush x:Key="HeroBrush" Color="#243C35" />
+                    <SolidColorBrush x:Key="SoftStrokeBrush" Color="#35403E" />
+                    <SolidColorBrush x:Key="BrandBrush" Color="#87CDB6" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <Style x:Key="PageHeadingStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="28" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+            <Style x:Key="SecondaryTextStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="FontSize" Value="13" />
+            </Style>
+            <Style x:Key="SurfaceStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource SurfaceBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource SoftStrokeBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="20" />
+                <Setter Property="Padding" Value="24" />
+            </Style>
+            <Style x:Key="BatteryTileStyle" TargetType="Border" BasedOn="{StaticResource SurfaceStyle}">
+                <Setter Property="Padding" Value="16" />
+                <Setter Property="CornerRadius" Value="16" />
+            </Style>
+            <Style x:Key="QuietButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Padding" Value="16,10" />
+            </Style>
+            <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Padding" Value="16,10" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

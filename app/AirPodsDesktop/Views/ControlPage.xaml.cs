@@ -40,6 +40,18 @@ public sealed partial class ControlPage : Page
         BusyRing.IsActive = _busy;
     }
 
+    private void ControlActions_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var columns = e.NewSize.Width >= 480 ? 3 : 1;
+        Button[] buttons = [RefreshButton, ConnectButton, DisconnectButton];
+        for (var i = 0; i < buttons.Length; i++)
+        {
+            Grid.SetRow(buttons[i], i / columns);
+            Grid.SetColumn(buttons[i], i % columns);
+            Grid.SetColumnSpan(buttons[i], 3 / columns);
+        }
+    }
+
     private void Render(ControlSnapshot state)
     {
         if (!_loaded) return;

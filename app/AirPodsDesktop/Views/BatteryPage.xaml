@@ -1,53 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Page
-    x:Class="AirPodsDesktop.Views.BatteryPage"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-
-    <ScrollViewer Padding="24">
-        <StackPanel Spacing="16" MaxWidth="720">
-            <TextBlock Text="电池与设置" Style="{StaticResource TitleTextBlockStyle}" />
-
-            <ItemsControl x:Name="BatteryList">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Spacing="4" Margin="0,0,0,12">
-                            <TextBlock Text="{Binding Title}" />
-                            <TextBlock Text="{Binding Display}" />
-                            <ProgressBar Value="{Binding Percent}" Minimum="0" Maximum="100" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-            <TextBlock Text="选项" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,12,0,0" />
-
-            <ToggleSwitch x:Name="EarDetectionSwitch"
-                          Header="入耳检测（摘下暂停 / 佩戴播放）"
-                          Toggled="EarDetection_Toggled" />
-            <ToggleSwitch x:Name="LowLatencySwitch"
-                          Header="低延迟音频模式（尚未支持）"
-                          IsEnabled="False" />
-            <ToggleSwitch x:Name="AutoStartSwitch"
-                          Header="开机自启"
-                          Toggled="AutoStart_Toggled" />
-            <ToggleSwitch x:Name="PopupSwitch"
-                          Header="开盖时显示电量弹窗"
-                          Toggled="Popup_Toggled" />
-
-            <NumberBox x:Name="RssiMinBox"
-                       Header="最低信号强度 (dBm)"
-                       Minimum="-100" Maximum="0" SmallChange="5"
-                       Value="-80"
-                       ValueChanged="RssiMin_Changed" />
-
-            <ComboBox x:Name="ThemeCombo" Header="主题" HorizontalAlignment="Left"
-                      SelectionChanged="Theme_SelectionChanged">
-                <ComboBoxItem Content="跟随系统" Tag="system" />
-                <ComboBoxItem Content="浅色" Tag="light" />
-                <ComboBoxItem Content="深色" Tag="dark" />
-            </ComboBox>
-            <TextBlock x:Name="SettingsStatus" TextWrapping="Wrap" />
+<Page x:Class="AirPodsDesktop.Views.BatteryPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer Padding="28,24,28,32" HorizontalContentAlignment="Stretch">
+        <StackPanel x:Name="PreferencesContent" MaxWidth="780" Spacing="20" SizeChanged="PreferencesContent_SizeChanged">
+            <StackPanel Spacing="6">
+                <TextBlock Text="电量与偏好" Style="{StaticResource PageHeadingStyle}" />
+                <TextBlock Text="按你的习惯，安排每一次聆听。" Style="{StaticResource SecondaryTextStyle}" />
+            </StackPanel>
+            <Border Style="{StaticResource SurfaceStyle}">
+                <StackPanel Spacing="18">
+                    <TextBlock Text="当前电量" FontSize="16" FontWeight="SemiBold" />
+                    <TextBlock x:Name="BatteryEmptyText" Text="还没有收到电量，打开充电盒后再看看。" Style="{StaticResource SecondaryTextStyle}" />
+                    <ItemsControl x:Name="BatteryList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,0,0,16" ColumnSpacing="20" RowSpacing="8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource SecondaryTextStyle}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Display}" FontWeight="SemiBold" />
+                                    <ProgressBar Grid.Row="1" Grid.ColumnSpan="2" Value="{Binding Percent}" Minimum="0" Maximum="100" Height="5" Foreground="{ThemeResource BrandBrush}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+            <TextBlock Text="聆听习惯" FontSize="16" FontWeight="SemiBold" Margin="4,4,0,0" />
+            <Border Style="{StaticResource SurfaceStyle}">
+                <StackPanel Spacing="20">
+                <Grid x:Name="PreferenceRow0" ColumnSpacing="24" RowSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <StackPanel Spacing="5"><TextBlock Text="入耳检测" FontWeight="SemiBold" /><TextBlock Text="摘下暂停，戴上继续播放。" Style="{StaticResource SecondaryTextStyle}" /></StackPanel>
+                    <StackPanel x:Name="PreferenceControl0" Grid.Column="1" VerticalAlignment="Center"><ToggleSwitch x:Name="EarDetectionSwitch" Toggled="EarDetection_Toggled" AutomationProperties.Name="入耳检测" OnContent="开启" OffContent="关闭" /></StackPanel>
+                </Grid>
+                    <Border Height="1" Background="{ThemeResource SoftStrokeBrush}" />
+                <Grid x:Name="PreferenceRow1" ColumnSpacing="24" RowSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <StackPanel Spacing="5"><TextBlock Text="开盖电量提醒" FontWeight="SemiBold" /><TextBlock Text="打开充电盒时，显示电量弹窗。" Style="{StaticResource SecondaryTextStyle}" /></StackPanel>
+                    <StackPanel x:Name="PreferenceControl1" Grid.Column="1" VerticalAlignment="Center"><ToggleSwitch x:Name="PopupSwitch" Toggled="Popup_Toggled" AutomationProperties.Name="开盖电量提醒" OnContent="开启" OffContent="关闭" /></StackPanel>
+                </Grid>
+                    <Border Height="1" Background="{ThemeResource SoftStrokeBrush}" />
+                <Grid x:Name="PreferenceRow2" ColumnSpacing="24" RowSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <StackPanel Spacing="5"><TextBlock Text="开机自启" FontWeight="SemiBold" /><TextBlock Text="登录 Windows 后自动启动。" Style="{StaticResource SecondaryTextStyle}" /></StackPanel>
+                    <StackPanel x:Name="PreferenceControl2" Grid.Column="1" VerticalAlignment="Center"><ToggleSwitch x:Name="AutoStartSwitch" Toggled="AutoStart_Toggled" AutomationProperties.Name="开机自启" OnContent="开启" OffContent="关闭" /></StackPanel>
+                </Grid>
+                </StackPanel>
+            </Border>
+            <TextBlock Text="应用偏好" FontSize="16" FontWeight="SemiBold" Margin="4,4,0,0" />
+            <Border Style="{StaticResource SurfaceStyle}">
+                <StackPanel Spacing="20">
+                <Grid x:Name="PreferenceRow3" ColumnSpacing="24" RowSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <StackPanel Spacing="5"><TextBlock Text="外观" FontWeight="SemiBold" /><TextBlock Text="选择舒适的浅色或深色界面。" Style="{StaticResource SecondaryTextStyle}" /></StackPanel>
+                    <StackPanel x:Name="PreferenceControl3" Grid.Column="1" VerticalAlignment="Center"><ComboBox x:Name="ThemeCombo" MinWidth="130" HorizontalAlignment="Left" SelectionChanged="Theme_SelectionChanged" AutomationProperties.Name="主题"><ComboBoxItem Content="跟随系统" Tag="system" /><ComboBoxItem Content="浅色" Tag="light" /><ComboBoxItem Content="深色" Tag="dark" /></ComboBox></StackPanel>
+                </Grid>
+                    <Border Height="1" Background="{ThemeResource SoftStrokeBrush}" />
+                <Grid x:Name="PreferenceRow4" ColumnSpacing="24" RowSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <StackPanel Spacing="5"><TextBlock Text="扫描范围" FontWeight="SemiBold" /><TextBlock Text="只接收高于此信号强度的广播（dBm）。" Style="{StaticResource SecondaryTextStyle}" /></StackPanel>
+                    <StackPanel x:Name="PreferenceControl4" Grid.Column="1" VerticalAlignment="Center"><NumberBox x:Name="RssiMinBox" Width="130" HorizontalAlignment="Left" Minimum="-100" Maximum="0" SmallChange="5" Value="-80" SpinButtonPlacementMode="Compact" ValueChanged="RssiMin_Changed" AutomationProperties.Name="最低信号强度 dBm" /></StackPanel>
+                </Grid>
+                </StackPanel>
+            </Border>
+            <Expander Header="实验性功能" HorizontalAlignment="Stretch">
+                <StackPanel Spacing="8">
+                    <ToggleSwitch x:Name="LowLatencySwitch" Header="低延迟音频" IsEnabled="False" />
+                    <TextBlock Text="暂未支持，后续版本开放。" Style="{StaticResource SecondaryTextStyle}" />
+                </StackPanel>
+            </Expander>
+            <TextBlock x:Name="SettingsStatus" TextWrapping="Wrap" Foreground="{ThemeResource BrandBrush}" />
         </StackPanel>
     </ScrollViewer>
 </Page>

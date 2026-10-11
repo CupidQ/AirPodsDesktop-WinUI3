@@ -72,6 +72,7 @@ public sealed partial class BatteryPage : Page
 
     private void Render(DeviceInfo? info)
     {
+        BatteryEmptyText.Visibility = info is null ? Visibility.Visible : Visibility.Collapsed;
         if (info is null)
         {
             _renderedBattery = null;
@@ -91,6 +92,21 @@ public sealed partial class BatteryPage : Page
             new { Title = "右耳", Display = info.Right.Display, Percent = Math.Max(0.0, info.Right.Percent) },
             new { Title = "充电盒", Display = info.Case.Display, Percent = Math.Max(0.0, info.Case.Percent) },
         };
+    }
+
+    private void PreferencesContent_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // Stack controls under their labels when the content area is narrow.
+        var compact = e.NewSize.Width < 540;
+        Grid[] rows = [PreferenceRow0, PreferenceRow1, PreferenceRow2, PreferenceRow3, PreferenceRow4];
+        StackPanel[] controls = [PreferenceControl0, PreferenceControl1, PreferenceControl2, PreferenceControl3, PreferenceControl4];
+        for (var i = 0; i < rows.Length; i++)
+        {
+            Grid.SetColumnSpan((FrameworkElement)rows[i].Children[0], compact ? 2 : 1);
+            Grid.SetRow(controls[i], compact ? 1 : 0);
+            Grid.SetColumn(controls[i], compact ? 0 : 1);
+            Grid.SetColumnSpan(controls[i], compact ? 2 : 1);
+        }
     }
 
     private void EarDetection_Toggled(object sender, RoutedEventArgs e)

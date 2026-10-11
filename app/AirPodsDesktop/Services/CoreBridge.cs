@@ -28,6 +28,7 @@ public sealed unsafe class CoreBridge : IDisposable
     public event EventHandler<DeviceInfo?>? LowBattery;
 
     public string CoreVersion { get; private set; } = "";
+    public bool IsScannerRunning { get; private set; }
 
     private CoreBridge() { }
 
@@ -183,9 +184,11 @@ public sealed unsafe class CoreBridge : IDisposable
                     Disconnected?.Invoke(this, EventArgs.Empty);
                     break;
                 case Native.ApdEvent.ScannerStarted:
+                    IsScannerRunning = true;
                     ScannerStatusChanged?.Invoke(this, true);
                     break;
                 case Native.ApdEvent.ScannerStopped:
+                    IsScannerRunning = false;
                     ScannerStatusChanged?.Invoke(this, false);
                     break;
                 case Native.ApdEvent.LowBattery:

@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "0.1.0"
+  #define AppVersion "0.1.1"
 #endif
 #ifndef PublishDir
   #define PublishDir "..\..\dist\publish"
@@ -25,6 +25,7 @@ OutputBaseFilename=AirPodsDesktop-WinUI3-{#AppVersion}-Setup-x64
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile={#PublishDir}\Assets\AppIcon.ico
 DisableProgramGroupPage=yes
 CloseApplications=yes
 RestartApplications=no

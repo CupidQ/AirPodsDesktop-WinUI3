@@ -1,8 +1,10 @@
 using AirPodsDesktop.Services;
 using AirPodsDesktop.Views;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Serilog;
+using Windows.Graphics;
 
 namespace AirPodsDesktop;
 
@@ -14,7 +16,9 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        ExtendsContentIntoTitleBar = true;
+        AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
+        RootGrid.Loaded += RootGrid_Loaded;
+        NavView.DisplayModeChanged += (_, _) => UpdatePageInsets();
 
         App.Core.StateUpdated += OnStateUpdated;
         App.Core.LidToggled += OnLidToggled;
@@ -60,6 +64,26 @@ public sealed partial class MainWindow : Window
     /// <summary>Forward Win32 tray messages if a message window is used.</summary>
     public void OnTrayMessage(uint msg, IntPtr lParam) => _tray.HandleCallback(msg, lParam);
 
+    private void RootGrid_Loaded(object sender, RoutedEventArgs e)
+    {
+        RootGrid.Loaded -= RootGrid_Loaded;
+
+        // XAML uses effective pixels; AppWindow sizes use physical pixels.
+        var scale = RootGrid.XamlRoot.RasterizationScale;
+        var workArea = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
+        AppWindow.Resize(new SizeInt32(
+            Math.Min((int)Math.Round(960 * scale), workArea.Width),
+            Math.Min((int)Math.Round(640 * scale), workArea.Height)));
+        UpdatePageInsets();
+    }
+
+    private void UpdatePageInsets()
+    {
+        // Minimal navigation overlays its menu button above the page.
+        ContentFrame.Margin = new Thickness(0,
+            NavView.DisplayMode == NavigationViewDisplayMode.Minimal ? 32 : 0, 0, 0);
+    }
+
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (args.SelectedItem is NavigationViewItem item)
@@ -77,6 +101,14 @@ public sealed partial class MainWindow : Window
             {
                 ContentFrame.Navigate(page);
             }
+        }
+    }
+
+    private void NavView_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
+    {
+        if (sender.DisplayMode != NavigationViewDisplayMode.Expanded)
+        {
+            sender.IsPaneOpen = false;
         }
     }
 
