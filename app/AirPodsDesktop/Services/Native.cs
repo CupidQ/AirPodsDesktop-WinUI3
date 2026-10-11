@@ -124,7 +124,20 @@ public static unsafe partial class Native
     [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
     public static extern int apd_media_play();
 
+    [DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr apd_read_log_tail(byte* pathUtf8);
+
     // ---- Helpers -----------------------------------------------------------
+
+    public static DeviceInfo ConvertState(in ApdDeviceState state, string modelName)
+    {
+        return new DeviceInfo(state.Model, modelName,
+            new BatteryInfo(state.Left.Battery.Percent, state.Left.Battery.IsCharging != 0, state.Left.IsInEar != 0),
+            new BatteryInfo(state.Right.Battery.Percent, state.Right.Battery.IsCharging != 0, state.Right.IsInEar != 0),
+            new CaseInfo(state.Case.Battery.Percent, state.Case.Battery.IsCharging != 0,
+                state.Case.IsBothPodsInCase != 0, state.Case.IsLidOpened != 0),
+            state.Rssi);
+    }
 
     public static unsafe string? PtrToUtf8AndFree(IntPtr ptr)
     {
@@ -147,6 +160,15 @@ public static unsafe partial class Native
 
     public static string Theme()
         => PtrToUtf8AndFree(apd_get_theme()) ?? "system";
+
+    public static string ReadLogTail(string path)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(path + "\0");
+        fixed (byte* p = bytes)
+        {
+            return PtrToUtf8AndFree(apd_read_log_tail(p)) ?? "读取日志失败: 核心未返回内容";
+        }
+    }
 
     public static unsafe void SetTheme(string theme)
     {
@@ -172,14 +194,14 @@ public sealed record DeviceInfo(
     public bool HasLowBattery => (Left.IsLow && !Left.IsCharging) || (Right.IsLow && !Right.IsCharging);
 }
 
-public sealed record BatteryInfo(int Percent, bool IsCharging, bool IsInEar)
+public readonly record struct BatteryInfo(int Percent, bool IsCharging, bool IsInEar)
 {
     public bool IsAvailable => Percent >= 0;
     public bool IsLow => IsAvailable && Percent <= 20;
     public string Display => IsAvailable ? (IsCharging ? $"{Percent}% ⚡" : $"{Percent}%") : "--";
 }
 
-public sealed record CaseInfo(int Percent, bool IsCharging, bool IsBothPodsInCase, bool IsLidOpened)
+public readonly record struct CaseInfo(int Percent, bool IsCharging, bool IsBothPodsInCase, bool IsLidOpened)
 {
     public bool IsAvailable => Percent >= 0;
     public string Display => IsAvailable ? (IsCharging ? $"{Percent}% ⚡" : $"{Percent}%") : "--";

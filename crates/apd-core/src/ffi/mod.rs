@@ -531,6 +531,31 @@ fn media_command(play: bool) -> i32 {
 // Diagnostics
 // ---------------------------------------------------------------------------
 
+/// Read a bounded UTF-8 log tail. I/O failures are returned as displayable text.
+/// The caller must free a non-null result with [`apd_string_free`]. Run off the UI thread.
+///
+/// # Safety
+/// `path` must be null or point to a readable, NUL-terminated UTF-8 path.
+#[no_mangle]
+pub unsafe extern "C" fn apd_read_log_tail(path: *const c_char) -> *mut c_char {
+    if path.is_null() {
+        return std::ptr::null_mut();
+    }
+    catch_unwind(|| {
+        let text = match CStr::from_ptr(path).to_str() {
+            Ok(path) => match crate::diagnostics::read_log_tail(std::path::Path::new(path)) {
+                Ok(text) => text,
+                Err(error) => format!("读取日志失败: {error}"),
+            },
+            Err(_) => "读取日志失败: 路径不是有效 UTF-8".into(),
+        };
+        CString::new(text)
+            .map(|s| s.into_raw())
+            .unwrap_or(std::ptr::null_mut())
+    })
+    .unwrap_or(std::ptr::null_mut())
+}
+
 /// Parse a raw 27-byte manufacturer payload and write a debug description.
 /// `out` must have capacity ≥ `out_len`. Returns bytes written (excluding NUL).
 ///

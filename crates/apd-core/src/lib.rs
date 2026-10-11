@@ -11,6 +11,7 @@
 //! - [`ffi`] — C ABI surface consumed by the WinUI 3 C# frontend
 
 pub mod ble;
+pub mod diagnostics;
 pub mod ffi;
 pub mod media;
 pub mod protocol;
