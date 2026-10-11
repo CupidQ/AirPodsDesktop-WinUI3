@@ -6,9 +6,16 @@ namespace AirPodsDesktop.Views;
 
 public sealed partial class DevicePage : Page
 {
+    private readonly DispatcherTimer _rssiTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    private DeviceInfo? _renderedState;
+    private bool? _renderedScannerRunning;
+    private short? _pendingRssi;
+    private short? _displayedRssi;
+
     public DevicePage()
     {
         InitializeComponent();
+        _rssiTimer.Tick += (_, _) => FlushRssi();
         Loaded += (_, _) =>
         {
             App.Core.StateUpdated += OnState;
@@ -16,6 +23,7 @@ public sealed partial class DevicePage : Page
             App.Core.Disconnected += OnLost;
             App.Core.ScannerStatusChanged += OnScannerStatus;
             App.Core.SettingsChanged += OnSettings;
+            UpdateActions();
             Render(App.Core.GetState());
         };
         Unloaded += (_, _) =>
@@ -25,14 +33,27 @@ public sealed partial class DevicePage : Page
             App.Core.Disconnected -= OnLost;
             App.Core.ScannerStatusChanged -= OnScannerStatus;
             App.Core.SettingsChanged -= OnSettings;
+            ClearRenderedState();
         };
     }
 
     private void OnState(object? sender, DeviceInfo? info) => Render(info);
-
     private void OnLost(object? sender, EventArgs e) => Render(null);
-    private void OnScannerStatus(object? sender, bool running) => Render(App.Core.GetState());
+    private void OnScannerStatus(object? sender, bool running)
+    {
+        UpdateActions();
+        Render(App.Core.GetState());
+    }
     private void OnSettings(object? sender, AppSettings settings) => UpdateActions();
+
+    private void ClearRenderedState()
+    {
+        _rssiTimer.Stop();
+        _pendingRssi = null;
+        _displayedRssi = null;
+        _renderedState = null;
+        _renderedScannerRunning = null;
+    }
 
     private void Render(DeviceInfo? info)
     {
@@ -41,9 +62,9 @@ public sealed partial class DevicePage : Page
             _ = DispatcherQueue.TryEnqueue(() => Render(info));
             return;
         }
-        UpdateActions();
         if (info is null)
         {
+            ClearRenderedState();
             StatusBadgeText.Text = App.Core.IsScannerRunning ? "正在寻找" : "扫描已暂停";
             ModelText.Text = "你的 AirPods";
             DeviceHintText.Text = "打开充电盒，让耳机靠近电脑。";
@@ -58,24 +79,60 @@ public sealed partial class DevicePage : Page
             return;
         }
 
-        StatusBadgeText.Text = App.Core.IsScannerRunning ? "设备已发现" : "扫描已暂停";
-        ModelText.Text = info.ModelName;
-        DeviceHintText.Text = "电量和佩戴状态会在这里更新。";
-        RssiText.Text = $"信号强度 · {info.Rssi} dBm";
-        StatusText.Text = App.Core.IsScannerRunning ? "正在接收设备广播，电量会自动更新。" : "扫描已暂停，显示最后收到的电量。";
-        BindDeviceButton.IsEnabled = true;
+        var previous = _renderedState;
+        _renderedState = info;
+        var running = App.Core.IsScannerRunning;
+        if (previous is null || _renderedScannerRunning != running)
+        {
+            StatusBadgeText.Text = running ? "设备已发现" : "扫描已暂停";
+            DeviceHintText.Text = "电量和佩戴状态会在这里更新。";
+            StatusText.Text = running ? "正在接收设备广播，电量会自动更新。" : "扫描已暂停，显示最后收到的电量。";
+            BindDeviceButton.IsEnabled = true;
+        }
+        _renderedScannerRunning = running;
+        if (previous?.ModelName != info.ModelName) ModelText.Text = info.ModelName;
 
-        LeftBatteryBar.Value = info.Left.IsAvailable ? info.Left.Percent : 0;
-        RightBatteryBar.Value = info.Right.IsAvailable ? info.Right.Percent : 0;
-        CaseBatteryBar.Value = info.Case.IsAvailable ? info.Case.Percent : 0;
+        if (previous?.Left.Percent != info.Left.Percent)
+            LeftBatteryBar.Value = info.Left.IsAvailable ? info.Left.Percent : 0;
+        if (previous?.Right.Percent != info.Right.Percent)
+            RightBatteryBar.Value = info.Right.IsAvailable ? info.Right.Percent : 0;
+        if (previous?.Case.Percent != info.Case.Percent)
+            CaseBatteryBar.Value = info.Case.IsAvailable ? info.Case.Percent : 0;
 
-        LeftBatteryText.Text = info.Left.IsAvailable ? info.Left.Display : "—";
-        RightBatteryText.Text = info.Right.IsAvailable ? info.Right.Display : "—";
-        CaseBatteryText.Text = info.Case.IsAvailable ? info.Case.Display : "—";
+        if (previous?.Left.Percent != info.Left.Percent || previous?.Left.IsCharging != info.Left.IsCharging)
+            LeftBatteryText.Text = info.Left.IsAvailable ? info.Left.Display : "—";
+        if (previous?.Right.Percent != info.Right.Percent || previous?.Right.IsCharging != info.Right.IsCharging)
+            RightBatteryText.Text = info.Right.IsAvailable ? info.Right.Display : "—";
+        if (previous?.Case.Percent != info.Case.Percent || previous?.Case.IsCharging != info.Case.IsCharging)
+            CaseBatteryText.Text = info.Case.IsAvailable ? info.Case.Display : "—";
 
-        LeftInEarText.Text = info.Left.IsInEar ? "正在佩戴" : info.Left.IsCharging ? "充电中" : info.Left.IsAvailable ? "未佩戴" : "等待电量";
-        RightInEarText.Text = info.Right.IsInEar ? "正在佩戴" : info.Right.IsCharging ? "充电中" : info.Right.IsAvailable ? "未佩戴" : "等待电量";
-        LidText.Text = info.Case.IsLidOpened ? "盒盖已打开" : "盒盖已合上";
+        if (previous?.Left != info.Left)
+            LeftInEarText.Text = info.Left.IsInEar ? "正在佩戴" : info.Left.IsCharging ? "充电中" : info.Left.IsAvailable ? "未佩戴" : "等待电量";
+        if (previous?.Right != info.Right)
+            RightInEarText.Text = info.Right.IsInEar ? "正在佩戴" : info.Right.IsCharging ? "充电中" : info.Right.IsAvailable ? "未佩戴" : "等待电量";
+        if (previous?.Case.IsLidOpened != info.Case.IsLidOpened)
+            LidText.Text = info.Case.IsLidOpened ? "盒盖已打开" : "盒盖已合上";
+
+        // Only RSSI display is throttled; battery, lid and ear state stay immediate.
+        _pendingRssi = info.Rssi;
+        if (previous is null || previous.Model != info.Model) FlushRssi();
+        else if (_displayedRssi == info.Rssi)
+        {
+            _rssiTimer.Stop();
+            _pendingRssi = null;
+        }
+        else if (!_rssiTimer.IsEnabled) _rssiTimer.Start();
+    }
+
+    private void FlushRssi()
+    {
+        _rssiTimer.Stop();
+        if (_renderedState != null && _pendingRssi is short rssi && _displayedRssi != rssi)
+        {
+            RssiText.Text = $"信号强度 · {rssi} dBm";
+            _displayedRssi = rssi;
+        }
+        _pendingRssi = null;
     }
 
     private void UpdateActions()
@@ -105,7 +162,6 @@ public sealed partial class DevicePage : Page
 
     private void ScanActions_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        // Use the available content width, which also accounts for the navigation pane.
         var columns = e.NewSize.Width >= 360 ? 2 : 1;
         Button[] buttons = [StartScanButton, StopScanButton];
         for (var i = 0; i < buttons.Length; i++)

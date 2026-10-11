@@ -2,7 +2,7 @@
 
 Windows 上的 AirPods 电量监视器，使用 WinUI 3 和 Rust 构建。
 
-**[下载安装包](https://github.com/CupidQ/AirPodsDesktop-WinUI3/releases/download/v0.1.0-winui3/AirPodsDesktop-WinUI3-0.1.0-Setup-x64.exe)** · [Release 与校验文件](https://github.com/CupidQ/AirPodsDesktop-WinUI3/releases/tag/v0.1.0-winui3)
+**[下载安装包](https://github.com/CupidQ/AirPodsDesktop-WinUI3/releases/download/v0.1.1/AirPodsDesktop-WinUI3-0.1.1-Setup-x64.exe)** · [Release 与校验文件](https://github.com/CupidQ/AirPodsDesktop-WinUI3/releases/tag/v0.1.1)
 
 支持 Windows 10 1809+ / Windows 11 x64，安装包已包含所需运行环境。
 
@@ -12,6 +12,7 @@ Windows 上的 AirPods 电量监视器，使用 WinUI 3 和 Rust 构建。
 - 入耳检测，摘下暂停、佩戴播放。
 - 浅色、深色和跟随系统主题。
 - 信号过滤、广播地址锁定，以及可选的登录自启动。
+- 耳机原生控制预览：降噪 / 通透 / 自适应、对话感知与单耳降噪开关，需要另行安装兼容的 MagicAAP 驱动。[使用条件与实测范围](docs/airpods-control.md)。
 
 ## 使用
 

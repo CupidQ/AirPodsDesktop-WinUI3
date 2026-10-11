@@ -19,7 +19,7 @@
     <LangVersion>latest</LangVersion>
     <AssemblyTitle>AirPodsDesktop</AssemblyTitle>
     <Product>AirPodsDesktop</Product>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -25,7 +25,11 @@
 cargo test -p apd-core --locked
 ```
 
-目前有 17 个单元测试和 4 个集成回归，覆盖协议解析、状态合并、断开重连、地址过滤及 FFI 布局。
+目前有 40 个单元测试和 4 个集成回归，覆盖协议解析、状态合并、重复广播保活、低电量提醒、断开重连、地址过滤、日志尾读、AAP 控制会话及 FFI 布局。GitHub Actions 在 Windows 上执行同一构建脚本，并运行 11 项 C# / Rust 互操作检查。
+
+日志页在后台调用 Rust 核心，只读取文件末尾最多 256 KiB，通常显示最后 200 行；超过字节上限时会提示截断。设备页按字段更新，仅 RSSI 显示合并到最多每秒 4 次，入耳、电量和盒盖事件保持即时处理。
+
+原生耳机控制的驱动条件、协议来源、音量联动与验证范围见 [AirPods 控制说明](airpods-control.md)。
 
 ## 打包
 
@@ -36,7 +40,7 @@ cargo test -p apd-core --locked
 
 脚本完成构建与测试、自包含发布、运行组件打包，输出到 `dist/`：
 
-- `AirPodsDesktop-WinUI3-0.1.0-Setup-x64.exe`
+- `AirPodsDesktop-WinUI3-0.1.1-Setup-x64.exe`
 - `SHA256SUMS.txt`
 
 安装包包含 .NET、Windows App SDK 和 Visual C++ 运行组件。卸载保留个人设置和日志，并清理指向此安装目录的自启动项。

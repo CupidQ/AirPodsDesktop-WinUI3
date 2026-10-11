@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 
 use parking_lot::Mutex;
 
-use crate::protocol::airpods::{AirPodsPacket, PodReading};
+use crate::protocol::airpods::AirPodsPacket;
 use crate::protocol::{AirPodsModel, Side};
 use crate::state::battery::BatteryState;
 
@@ -20,6 +20,12 @@ use crate::state::battery::BatteryState;
 pub struct PodState {
     pub battery: BatteryState,
     pub is_in_ear: bool,
+}
+
+impl PodState {
+    fn has_low_battery(&self) -> bool {
+        self.battery.is_low() && !self.battery.is_charging
+    }
 }
 
 /// Charging-case state.
@@ -54,8 +60,15 @@ impl DeviceState {
 
     /// True when either battery is low and not charging.
     pub fn has_low_battery(&self) -> bool {
-        (self.left.battery.is_low() && !self.left.battery.is_charging)
-            || (self.right.battery.is_low() && !self.right.battery.is_charging)
+        self.left.has_low_battery() || self.right.has_low_battery()
+    }
+
+    /// True when either ear enters the low-battery condition. RSSI and in-ear
+    /// changes do not repeat the warning; recovery or charging rearms each ear.
+    pub fn has_new_low_battery(&self, previous: Option<&Self>) -> bool {
+        (self.left.has_low_battery() && !previous.is_some_and(|old| old.left.has_low_battery()))
+            || (self.right.has_low_battery()
+                && !previous.is_some_and(|old| old.right.has_low_battery()))
     }
 }
 
@@ -158,10 +171,12 @@ impl Manager {
             g.bound_address = next;
             changed
         };
-        if changed { self.mark_lost(); }
+        if changed {
+            self.mark_lost();
+        }
     }
 
-    /// Feed a parsed advertisement. Returns `true` if the merged state changed.
+    /// Feed a parsed advertisement. Returns an update if the merged state changed.
     pub fn on_advertisement(
         &self,
         packet: AirPodsPacket,
@@ -211,33 +226,21 @@ impl Manager {
 
             match Self::merge_locked(&g) {
                 Some(new) => {
-                    let old = g.cached.clone();
-                    let changed = old.as_ref() != Some(&new);
-
                     // Edge triggers.
-                    if changed {
-                        let both = new.is_both_in_ear();
-                        if both != g.prev_both_in_ear {
-                            g.prev_both_in_ear = both;
-                            events.push(ManagerEvent::BothInEar { in_ear: both });
-                        }
-                        let lid = new.case.is_lid_opened;
-                        if lid != g.prev_lid_opened {
-                            g.prev_lid_opened = lid;
-                            events.push(ManagerEvent::LidToggled { opened: lid });
-                        }
+                    let both = new.is_both_in_ear();
+                    if both != g.prev_both_in_ear {
+                        g.prev_both_in_ear = both;
+                        events.push(ManagerEvent::BothInEar { in_ear: both });
+                    }
+                    let lid = new.case.is_lid_opened;
+                    if lid != g.prev_lid_opened {
+                        g.prev_lid_opened = lid;
+                        events.push(ManagerEvent::LidToggled { opened: lid });
                     }
 
-                    if g.lost {
-                        g.lost = false;
-                    }
-
-                    if changed {
-                        g.cached = Some(new.clone());
-                        Some(UpdateEvent { old, new })
-                    } else {
-                        None
-                    }
+                    g.lost = false;
+                    let old = g.cached.replace(new.clone());
+                    Some(UpdateEvent { old, new })
                 }
                 None => None,
             }
@@ -338,8 +341,8 @@ impl Manager {
 
     /// Merge left/right advertisement slots into a single snapshot.
     ///
-    /// Prefers the freshest reading for each field; falls back to the other side
-    /// when one side has not advertised recently.
+    /// Each packet contains both ears, so use the freshest packet for every field.
+    /// Return `None` for an unchanged snapshot before allocating its display name.
     fn merge_locked(g: &Inner) -> Option<DeviceState> {
         let left_slot = g.left.as_ref();
         let right_slot = g.right.as_ref();
@@ -347,72 +350,48 @@ impl Manager {
         let (packet, rssi) = match (left_slot, right_slot) {
             (Some(l), Some(r)) => {
                 if l.at >= r.at {
-                    (l.packet.clone(), r.rssi.max(l.rssi))
+                    (&l.packet, r.rssi.max(l.rssi))
                 } else {
-                    (r.packet.clone(), r.rssi.max(l.rssi))
+                    (&r.packet, r.rssi.max(l.rssi))
                 }
             }
-            (Some(l), None) => (l.packet.clone(), l.rssi),
-            (None, Some(r)) => (r.packet.clone(), r.rssi),
+            (Some(l), None) => (&l.packet, l.rssi),
+            (None, Some(r)) => (&r.packet, r.rssi),
             (None, None) => return None,
         };
 
-        // Merge per-ear: prefer the side that is actually broadcasting that ear's data.
-        let left_pod = pick_pod(&packet, Side::Left, left_slot, right_slot);
-        let right_pod = pick_pod(&packet, Side::Right, left_slot, right_slot);
+        let left = PodState {
+            battery: BatteryState::new(packet.left.battery, packet.left.is_charging),
+            is_in_ear: packet.left.is_in_ear,
+        };
+        let right = PodState {
+            battery: BatteryState::new(packet.right.battery, packet.right.is_charging),
+            is_in_ear: packet.right.is_in_ear,
+        };
+        let case = CaseState {
+            battery: BatteryState::new(packet.case.battery, packet.case.is_charging),
+            is_both_pods_in_case: packet.case.is_both_pods_in_case,
+            is_lid_opened: packet.case.is_lid_opened,
+        };
+
+        if g.cached.as_ref().is_some_and(|old| {
+            old.model == packet.model
+                && old.left == left
+                && old.right == right
+                && old.case == case
+                && old.rssi == rssi
+        }) {
+            return None;
+        }
 
         Some(DeviceState {
             model: packet.model,
             display_name: packet.model.display_name().to_string(),
-            left: left_pod,
-            right: right_pod,
-            case: CaseState {
-                battery: BatteryState::new(packet.case.battery, packet.case.is_charging),
-                is_both_pods_in_case: packet.case.is_both_pods_in_case,
-                is_lid_opened: packet.case.is_lid_opened,
-            },
+            left,
+            right,
+            case,
             rssi,
         })
-    }
-}
-
-/// Choose the best reading for `side`.
-fn pick_pod(
-    packet: &AirPodsPacket,
-    side: Side,
-    left: Option<&AdvSlot>,
-    right: Option<&AdvSlot>,
-) -> PodState {
-    // The advertising packet always contains both ears; prefer the side whose
-    // own advertisement is fresher for that ear (more accurate charging/in-ear).
-    let from_packet = match side {
-        Side::Left => packet.left,
-        Side::Right => packet.right,
-    };
-
-    // If the opposite-side slot is newer and reports that ear, use it.
-    let alt: Option<PodReading> = match side {
-        Side::Left => right.map(|s| s.packet.left),
-        Side::Right => left.map(|s| s.packet.right),
-    };
-
-    let primary_slot_at = match side {
-        Side::Left => left.map(|s| s.at),
-        Side::Right => right.map(|s| s.at),
-    };
-    let alt_slot_at = match side {
-        Side::Left => right.map(|s| s.at),
-        Side::Right => left.map(|s| s.at),
-    };
-
-    let reading = match (primary_slot_at, alt_slot_at, alt) {
-        (Some(p_at), Some(a_at), Some(a)) if a_at > p_at => a,
-        _ => from_packet,
-    };
-
-    PodState {
-        battery: BatteryState::new(reading.battery, reading.is_charging),
-        is_in_ear: reading.is_in_ear,
     }
 }
 
@@ -430,7 +409,12 @@ mod tests {
     use super::*;
     use crate::protocol::airpods::AirPodsPacket;
 
-    fn make_packet(side_left: bool, left_batt: u8, right_batt: u8, left_in_ear: bool) -> AirPodsPacket {
+    fn make_packet(
+        side_left: bool,
+        left_batt: u8,
+        right_batt: u8,
+        left_in_ear: bool,
+    ) -> AirPodsPacket {
         let mut p = vec![0u8; 27];
         p[0] = 0x07;
         p[1] = 25;
@@ -462,16 +446,8 @@ mod tests {
     fn merge_both_sides() {
         let mgr = Manager::new();
 
-        let _ = mgr.on_advertisement(
-            make_packet(true, 8, 7, true),
-            0xAA,
-            -50,
-        );
-        let last = mgr.on_advertisement(
-            make_packet(false, 8, 7, true),
-            0xBB,
-            -55,
-        );
+        let _ = mgr.on_advertisement(make_packet(true, 8, 7, true), 0xAA, -50);
+        let last = mgr.on_advertisement(make_packet(false, 8, 7, true), 0xBB, -55);
 
         let st = last.expect("state update").new;
         assert_eq!(st.left.battery.percent, Some(80));
@@ -510,5 +486,122 @@ mod tests {
         assert!(mgr.current_state().is_some());
         mgr.mark_lost();
         assert!(mgr.current_state().is_none());
+    }
+
+    #[test]
+    fn duplicate_advertisement_refreshes_tracking_without_events() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let mgr = Manager::new();
+        let events = Arc::new(AtomicUsize::new(0));
+        let capture = events.clone();
+        mgr.add_listener(Arc::new(move |_| {
+            capture.fetch_add(1, Ordering::Relaxed);
+        }));
+        let packet = make_packet(true, 8, 7, true);
+        mgr.on_advertisement(packet.clone(), 0xAA, -40);
+        events.store(0, Ordering::Relaxed);
+
+        // Simulate silence without making this regression sleep for five seconds.
+        mgr.inner.lock().left.as_mut().unwrap().at =
+            Instant::now() - LOST_TIMEOUT - Duration::from_secs(1);
+        assert!(mgr.on_advertisement(packet.clone(), 0xBB, -40).is_none());
+        mgr.tick();
+        assert!(mgr.current_state().is_some());
+        assert_eq!(mgr.current_address(), Some(0xBB));
+        assert_eq!(events.load(Ordering::Relaxed), 0);
+
+        // RSSI remains real-time even when battery values do not change.
+        let update = mgr.on_advertisement(packet, 0xBB, -50).unwrap();
+        assert_eq!(update.old.unwrap().rssi, -40);
+        assert_eq!(update.new.rssi, -50);
+        assert_eq!(events.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn freshest_packet_supplies_both_ears_and_case() {
+        let mgr = Manager::new();
+        mgr.on_advertisement(make_packet(true, 8, 7, true), 0xAA, -40);
+        // Ensure strict ordering even on platforms with a coarse Instant clock.
+        mgr.inner.lock().left.as_mut().unwrap().at -= Duration::from_millis(1);
+        let mut packet = make_packet(false, 6, 5, false);
+        packet.case.is_lid_opened = false;
+        let update = mgr.on_advertisement(packet, 0xBB, -50).unwrap();
+        assert_eq!(update.new.left.battery.percent, Some(60));
+        assert_eq!(update.new.right.battery.percent, Some(50));
+        assert!(!update.new.left.is_in_ear);
+        assert!(!update.new.case.is_lid_opened);
+        assert_eq!(update.new.rssi, -40);
+
+        mgr.inner.lock().right.as_mut().unwrap().at -= Duration::from_millis(1);
+        let update = mgr
+            .on_advertisement(make_packet(true, 9, 8, true), 0xAA, -60)
+            .unwrap();
+        assert_eq!(update.new.left.battery.percent, Some(90));
+        assert_eq!(update.new.right.battery.percent, Some(80));
+        assert!(update.new.left.is_in_ear);
+        assert!(update.new.case.is_lid_opened);
+        assert_eq!(update.new.rssi, -50);
+    }
+
+    #[test]
+    fn low_battery_alerts_are_per_ear_and_rearm_after_recovery() {
+        let mut old = DeviceState::default();
+        old.left.battery.percent = Some(80);
+        old.right.battery.percent = Some(80);
+        assert!(!old.has_new_low_battery(None));
+
+        let mut low = old.clone();
+        low.left.battery.percent = Some(20);
+        assert!(low.has_new_low_battery(Some(&old)));
+        assert!(low.has_new_low_battery(None)); // Initial/reconnected low device.
+
+        let mut changed = low.clone();
+        changed.rssi = -60;
+        changed.left.is_in_ear = true;
+        changed.left.battery.percent = Some(10);
+        assert!(!changed.has_new_low_battery(Some(&low)));
+
+        old = changed.clone();
+        changed.right.battery.percent = Some(20);
+        assert!(changed.has_new_low_battery(Some(&old)));
+
+        let mut charging = changed.clone();
+        charging.left.battery.is_charging = true;
+        charging.right.battery.is_charging = true;
+        assert!(!charging.has_low_battery());
+        assert!(!charging.has_new_low_battery(Some(&changed)));
+        assert!(changed.has_new_low_battery(Some(&charging)));
+
+        let mut recovered = changed.clone();
+        recovered.left.battery.percent = Some(30);
+        assert!(!recovered.has_new_low_battery(Some(&changed)));
+        assert!(changed.has_new_low_battery(Some(&recovered)));
+
+        changed.left.battery.percent = None;
+        changed.right.battery.percent = None;
+        assert!(!changed.has_low_battery());
+        assert!(!changed.has_new_low_battery(Some(&old)));
+    }
+
+    #[test]
+    fn listeners_can_read_state_and_change_filters_without_deadlock() {
+        let mgr = Manager::new();
+        let callback_inner = Arc::downgrade(&mgr.inner);
+        mgr.add_listener(Arc::new(move |event| {
+            let callback_manager = Manager {
+                inner: callback_inner.upgrade().unwrap(),
+            };
+            if matches!(event, ManagerEvent::StateUpdated(_)) {
+                assert!(callback_manager.current_state().is_some());
+                callback_manager.set_rssi_min(-60);
+            }
+        }));
+        assert!(mgr
+            .on_advertisement(make_packet(true, 8, 8, true), 0xAA, -40)
+            .is_some());
+        assert!(mgr
+            .on_advertisement(make_packet(true, 7, 8, true), 0xAA, -70)
+            .is_none());
     }
 }

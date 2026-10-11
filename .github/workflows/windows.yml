@@ -9,9 +9,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows:
-    runs-on: windows-latest
+    # The build and app-local CRT packaging target the documented VS 2022 toolchain.
+    runs-on: windows-2022
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -19,9 +24,14 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
+      - name: Check Rust lints
+        shell: pwsh
+        run: cargo clippy -p apd-core --locked --all-targets -- -D warnings
       - name: Ensure installer compiler
         shell: pwsh
         run: |
@@ -32,6 +42,9 @@ jobs:
       - name: Build, test, and package self-contained installer
         shell: pwsh
         run: ./scripts/build-installer.ps1
+      - name: Check managed/native interop
+        shell: pwsh
+        run: dotnet run --project tests/ApdInterop/ApdInterop.csproj -c Release -- ./target/release/apd_core.dll
       - uses: actions/upload-artifact@v4
         with:
           name: AirPodsDesktop-WinUI3-Setup-x64

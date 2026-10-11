@@ -134,14 +134,7 @@ public sealed unsafe class CoreBridge : IDisposable
 
     private static unsafe DeviceInfo Convert(Native.ApdDeviceState* st)
     {
-        var left = new BatteryInfo(st->Left.Battery.Percent, st->Left.Battery.IsCharging != 0, st->Left.IsInEar != 0);
-        var right = new BatteryInfo(st->Right.Battery.Percent, st->Right.Battery.IsCharging != 0, st->Right.IsInEar != 0);
-        var caseBox = new CaseInfo(
-            st->Case.Battery.Percent,
-            st->Case.Battery.IsCharging != 0,
-            st->Case.IsBothPodsInCase != 0,
-            st->Case.IsLidOpened != 0);
-        return new DeviceInfo(st->Model, ModelName(st->Model), left, right, caseBox, st->Rssi);
+        return Native.ConvertState(*st, ModelName(st->Model));
     }
 
     public static string ModelName(uint model) => model switch
@@ -221,6 +214,7 @@ public sealed unsafe class CoreBridge : IDisposable
 
     public void Dispose()
     {
+        App.Controls.Shutdown();
         StopScanner();
         Native.apd_set_event_callback(null, IntPtr.Zero);
         _callback = null;

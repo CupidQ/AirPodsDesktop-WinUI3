@@ -93,6 +93,7 @@ public sealed partial class MainWindow : Window
             {
                 "Device" => typeof(DevicePage),
                 "Battery" => typeof(BatteryPage),
+                "Control" => typeof(ControlPage),
                 "Logs" => typeof(LogsPage),
                 _ => typeof(DevicePage),
             };
