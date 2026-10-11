@@ -32,6 +32,7 @@ public sealed class TrayIconService : IDisposable
     private IntPtr _hwnd;
     private IntPtr _hIcon;
     private bool _added;
+    private string _tooltip = "AirPodsDesktop";
     private IntPtr _msgHwnd;
     private WndProcDelegate? _wndProc;
 
@@ -78,14 +79,14 @@ public sealed class TrayIconService : IDisposable
             uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP,
             uCallbackMessage = WM_TRAYICON,
             hIcon = _hIcon,
-            szTip = "AirPodsDesktop",
+            szTip = _tooltip,
         };
         _added = Shell_NotifyIconW(NIM_ADD, ref nid);
     }
 
     public void SetTooltip(string text)
     {
-        if (!_added) return;
+        if (!_added || text == _tooltip) return;
         var nid = new NOTIFYICONDATA
         {
             cbSize = (uint)Marshal.SizeOf<NOTIFYICONDATA>(),
@@ -94,7 +95,8 @@ public sealed class TrayIconService : IDisposable
             uFlags = NIF_TIP | NIF_SHOWTIP,
             szTip = text,
         };
-        Shell_NotifyIconW(NIM_MODIFY, ref nid);
+        if (Shell_NotifyIconW(NIM_MODIFY, ref nid))
+            _tooltip = text;
     }
 
     /// <summary>Call from the window procedure for the tray callback message.</summary>

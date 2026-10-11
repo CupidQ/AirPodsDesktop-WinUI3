@@ -8,13 +8,13 @@ use std::sync::Arc;
 use parking_lot::Mutex;
 use windows::Devices::Bluetooth::Advertisement::{
     BluetoothLEAdvertisementReceivedEventArgs, BluetoothLEAdvertisementWatcher,
-    BluetoothLEAdvertisementWatcherStoppedEventArgs, BluetoothLEAdvertisementWatcherStatus,
+    BluetoothLEAdvertisementWatcherStatus, BluetoothLEAdvertisementWatcherStoppedEventArgs,
 };
 use windows::Foundation::{EventRegistrationToken, TypedEventHandler};
 
 use crate::ble::{ManufacturerData, ReceivedAdvertisement};
 
-/// Callback for each advertisement that carries manufacturer data.
+/// Callback for each advertisement that carries Apple manufacturer data.
 pub type OnReceived = Arc<dyn Fn(ReceivedAdvertisement) + Send + Sync>;
 /// Callback when the watcher starts or stops.
 pub type OnState = Arc<dyn Fn(WatcherState, Option<String>) + Send + Sync>;
@@ -95,7 +95,8 @@ impl BleWatcher {
             if let Some(args) = args.as_ref() {
                 if let Some(data) = extract_advertisement(args) {
                     if !data.manufacturer_data.is_empty() {
-                        if let Some(cb) = callbacks.lock().on_received.as_ref() {
+                        let callback = callbacks.lock().on_received.clone();
+                        if let Some(cb) = callback {
                             cb(data);
                         }
                     }
@@ -129,7 +130,8 @@ impl BleWatcher {
                     }
                 }
             }
-            if let Some(cb) = callbacks.lock().on_state.as_ref() {
+            let callback = callbacks.lock().on_state.clone();
+            if let Some(cb) = callback {
                 cb(WatcherState::Stopped, error);
             }
             Ok(())
@@ -152,7 +154,8 @@ impl BleWatcher {
             .map_err(|e| WatcherError(e.to_string()))?;
         self.running.store(true, Ordering::SeqCst);
 
-        if let Some(cb) = self.callbacks.lock().on_state.as_ref() {
+        let callback = self.callbacks.lock().on_state.clone();
+        if let Some(cb) = callback {
             cb(WatcherState::Started, None);
         }
         Ok(())
@@ -200,7 +203,10 @@ fn extract_advertisement(
     let mut manufacturer_data = Vec::new();
     for i in 0..mfrs.Size().unwrap_or(0) {
         if let Ok(mfr) = mfrs.GetAt(i) {
-            let company_id = mfr.CompanyId().unwrap_or(0);
+            let company_id = match mfr.CompanyId() {
+                Ok(id) if id == crate::protocol::VENDOR_ID => id,
+                _ => continue,
+            };
             let data_buf = match mfr.Data().ok() {
                 Some(d) => d,
                 None => continue,
@@ -209,8 +215,12 @@ fn extract_advertisement(
             let mut bytes = vec![0u8; len];
             if len > 0 {
                 use windows::Storage::Streams::DataReader;
-                if let Ok(reader) = DataReader::FromBuffer(&data_buf) {
-                    let _ = reader.ReadBytes(&mut bytes);
+                let reader = match DataReader::FromBuffer(&data_buf) {
+                    Ok(reader) => reader,
+                    Err(_) => continue,
+                };
+                if reader.ReadBytes(&mut bytes).is_err() {
+                    continue;
                 }
             }
             manufacturer_data.push(ManufacturerData {

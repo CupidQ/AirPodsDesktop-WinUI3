@@ -9,6 +9,8 @@ namespace AirPodsDesktop.Views;
 public sealed partial class BatteryPage : Page
 {
     private bool _loading = true;
+    private (int Left, bool LeftCharging, int Right, bool RightCharging,
+        int Case, bool CaseCharging)? _renderedBattery;
     public BatteryPage()
     {
         InitializeComponent();
@@ -72,9 +74,16 @@ public sealed partial class BatteryPage : Page
     {
         if (info is null)
         {
+            _renderedBattery = null;
             BatteryList.ItemsSource = null;
             return;
         }
+
+        var battery = (info.Left.Percent, info.Left.IsCharging,
+            info.Right.Percent, info.Right.IsCharging,
+            info.Case.Percent, info.Case.IsCharging);
+        if (_renderedBattery == battery) return;
+        _renderedBattery = battery;
 
         BatteryList.ItemsSource = new[]
         {
