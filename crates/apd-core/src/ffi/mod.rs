@@ -13,7 +13,9 @@
 
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_void};
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::catch_unwind;
+#[cfg(windows)]
+use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 
 use once_cell::sync::OnceCell;
@@ -190,6 +192,9 @@ fn emit_raw(event: ApdEvent, state: &ApdDeviceState, aux: i32) {
 // ---------------------------------------------------------------------------
 
 /// Library version (UTF-8). Caller frees with [`apd_string_free`].
+///
+/// # Safety
+/// A non-null result must be freed exactly once with [`apd_string_free`].
 #[no_mangle]
 pub unsafe extern "C" fn apd_version() -> *mut c_char {
     match CString::new(crate::VERSION) {
@@ -199,6 +204,9 @@ pub unsafe extern "C" fn apd_version() -> *mut c_char {
 }
 
 /// Free a string returned by this library.
+///
+/// # Safety
+/// `s` must be null or an unfreed pointer returned by this library's string APIs.
 #[no_mangle]
 pub unsafe extern "C" fn apd_string_free(s: *mut c_char) {
     if !s.is_null() {
@@ -229,7 +237,7 @@ pub extern "C" fn apd_init() -> i32 {
         let listener: crate::state::manager::Listener = Arc::new(|event| match event {
             ManagerEvent::StateUpdated(up) => {
                 emit(ApdEvent::StateUpdated, Some(&up.new), 0);
-                if up.new.has_low_battery() {
+                if up.new.has_new_low_battery(up.old.as_ref()) {
                     emit(ApdEvent::LowBattery, Some(&up.new), 0);
                 }
             }
@@ -302,10 +310,7 @@ pub extern "C" fn apd_start_scanner() -> i32 {
                 }
             }
         }));
-        match result {
-            Ok(code) => code,
-            Err(_) => -99,
-        }
+        result.unwrap_or(-99)
     }
     #[cfg(not(windows))]
     {
@@ -333,8 +338,11 @@ pub extern "C" fn apd_stop_scanner() -> i32 {
 
 /// Read the current merged device state into `out`.
 /// Returns 1 when a state is available, 0 when none.
+///
+/// # Safety
+/// `out` must be null or point to an aligned, writable [`ApdDeviceState`].
 #[no_mangle]
-pub extern "C" fn apd_get_state(out: *mut ApdDeviceState) -> i32 {
+pub unsafe extern "C" fn apd_get_state(out: *mut ApdDeviceState) -> i32 {
     if out.is_null() {
         return -1;
     }
@@ -405,8 +413,12 @@ impl From<crate::settings::Settings> for ApdSettings {
     }
 }
 
+/// Read the current settings into `out`.
+///
+/// # Safety
+/// `out` must be null or point to an aligned, writable [`ApdSettings`].
 #[no_mangle]
-pub extern "C" fn apd_get_settings(out: *mut ApdSettings) -> i32 {
+pub unsafe extern "C" fn apd_get_settings(out: *mut ApdSettings) -> i32 {
     if out.is_null() {
         return -1;
     }
@@ -441,6 +453,10 @@ pub extern "C" fn apd_get_theme() -> *mut c_char {
     CString::new(theme).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }
 
+/// Set the UI theme from a UTF-8 string.
+///
+/// # Safety
+/// `theme` must be null or point to a readable, NUL-terminated string.
 #[no_mangle]
 pub unsafe extern "C" fn apd_set_theme(theme: *const c_char) -> i32 {
     if theme.is_null() {
@@ -517,6 +533,10 @@ fn media_command(play: bool) -> i32 {
 
 /// Parse a raw 27-byte manufacturer payload and write a debug description.
 /// `out` must have capacity ≥ `out_len`. Returns bytes written (excluding NUL).
+///
+/// # Safety
+/// Non-null `data` must be readable for `data_len` bytes, and non-null `out`
+/// must be writable for `out_len` bytes for the duration of this call.
 #[no_mangle]
 pub unsafe extern "C" fn apd_debug_parse(
     data: *const u8,

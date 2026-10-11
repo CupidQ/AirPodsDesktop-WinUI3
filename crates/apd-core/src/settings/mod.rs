@@ -133,9 +133,11 @@ mod tests {
 
     #[test]
     fn serde_roundtrip() {
-        let mut s = Settings::default();
-        s.rssi_min = -60;
-        s.theme = "dark".into();
+        let s = Settings {
+            rssi_min: -60,
+            theme: "dark".into(),
+            ..Settings::default()
+        };
         let json = serde_json::to_string(&s).unwrap();
         let back: Settings = serde_json::from_str(&json).unwrap();
         assert_eq!(s, back);

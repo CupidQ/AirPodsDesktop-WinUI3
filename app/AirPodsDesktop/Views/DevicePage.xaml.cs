@@ -26,21 +26,20 @@ public sealed partial class DevicePage : Page
 
     private void OnLost(object? sender, EventArgs e)
     {
-        _ = DispatcherQueue.TryEnqueue(() =>
-        {
-            StatusText.Text = "设备已断开 / 丢失";
-            ModelText.Text = "AirPods";
-            RssiText.Text = "RSSI --";
-            LeftBatteryBar.Value = 0;
-            RightBatteryBar.Value = 0;
-            CaseBatteryBar.Value = 0;
-            LeftBatteryText.Text = "--";
-            RightBatteryText.Text = "--";
-            CaseBatteryText.Text = "--";
-            LeftInEarText.Text = "";
-            RightInEarText.Text = "";
-            LidText.Text = "";
-        });
+        // CoreBridge already dispatches events to the UI thread. Enqueuing
+        // again could clear a newer connected state after a rapid reconnect.
+        StatusText.Text = "设备已断开 / 丢失";
+        ModelText.Text = "AirPods";
+        RssiText.Text = "RSSI --";
+        LeftBatteryBar.Value = 0;
+        RightBatteryBar.Value = 0;
+        CaseBatteryBar.Value = 0;
+        LeftBatteryText.Text = "--";
+        RightBatteryText.Text = "--";
+        CaseBatteryText.Text = "--";
+        LeftInEarText.Text = "";
+        RightInEarText.Text = "";
+        LidText.Text = "";
     }
 
     private void Render(DeviceInfo? info)
