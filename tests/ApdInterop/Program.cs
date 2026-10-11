@@ -40,6 +40,33 @@ try
         Equal(20, second.Left.Percent);
         Equal(true, second.HasLowBattery);
     });
+    Check("Control JSON preserves unknown settings and validates commands", () =>
+    {
+        var state = Native.ControlState();
+        Equal("disconnected", state.Phase);
+        Equal<int?>(null, state.ListeningMode);
+        Equal<bool?>(null, state.ConversationAwareness);
+        Equal<bool?>(null, state.OneEarAnc);
+        Equal(false, Native.ControlSet(999, 1).Ok);
+        Equal(false, Native.ControlSet(0, 3).Ok);
+    });
+    Check("Unavailable control interface is not opened", () =>
+    {
+        var devices = Native.ControlListDevices();
+        Equal(true, devices.Devices != null);
+        var result = Native.ControlConnect(@"\\.\apd-nonexistent-control-test");
+        Equal(false, result.Ok);
+        Equal(true, !string.IsNullOrWhiteSpace(result.Error));
+        Equal("disconnected", Native.ControlState().Phase);
+    });
+    Check("Control disconnect clears local conversation ducking", () =>
+    {
+        Equal(true, Native.ControlSetDuck(true).Ok);
+        Equal(true, Native.ControlState().DuckEnabled);
+        Equal(true, Native.ControlDisconnect().Ok);
+        Equal(false, Native.ControlState().DuckEnabled);
+        Equal<int?>(null, Native.ControlState().ListeningMode);
+    });
     foreach (var separator in new[] { "\n", "\r\n", "\r" })
     {
         Check("UTF-8/BOM tail with " + separator.Replace("\r", "CR").Replace("\n", "LF"), () =>

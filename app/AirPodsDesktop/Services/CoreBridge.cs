@@ -211,6 +211,7 @@ public sealed unsafe class CoreBridge : IDisposable
 
     public void Dispose()
     {
+        App.Controls.Shutdown();
         StopScanner();
         Native.apd_set_event_callback(null, IntPtr.Zero);
         _callback = null;

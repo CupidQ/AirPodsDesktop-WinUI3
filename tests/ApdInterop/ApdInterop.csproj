@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../app/AirPodsDesktop/Services/Native.cs" Link="Native.cs" />
+    <Compile Include="../../app/AirPodsDesktop/Services/NativeControl.cs" Link="NativeControl.cs" />
   </ItemGroup>
 </Project>

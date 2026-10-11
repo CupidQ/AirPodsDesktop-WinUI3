@@ -9,6 +9,7 @@ public partial class App : Application
 {
     public static Window? MainWindow { get; private set; }
     public static CoreBridge Core => CoreBridge.Instance;
+    public static AirPodsControlService Controls { get; } = new();
 
     public App()
     {
