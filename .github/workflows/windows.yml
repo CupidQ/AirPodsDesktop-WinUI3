@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -19,9 +23,14 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
+      - name: Check Rust lints
+        shell: pwsh
+        run: cargo clippy -p apd-core --locked --all-targets -- -D warnings
       - name: Ensure installer compiler
         shell: pwsh
         run: |
